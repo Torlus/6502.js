@@ -1,13 +1,13 @@
 CPU6502 = function() {
-	
+
 	this.PC = 0; // Program counter
 
 	this.A = 0; this.X = 0; this.Y = 0; this.S = 0; // Registers
 	this.N = 0; this.Z = 1; this.C = 0; this.V = 0; // ALU flags
 	this.I = 0; this.D = 0; // Other flags
-	
+
 	this.irq = 0; this.nmi = 0; // IRQ lines
-	
+
 	this.tmp = 0; this.addr = 0; // Temporary registers
 	this.opcode = 0; // Current opcode
 	this.cycles = 0; // Cycles counter
@@ -25,11 +25,11 @@ CPU6502.prototype.reset = function() {
 	this.N = 0; this.Z = 1; this.C = 0; this.V = 0;
 	this.I = 0; this.D = 0;
 
-	this.PC = (this.read(0xFFFD) << 8) | this.read(0xFFFC);	
+	this.PC = (this.read(0xFFFD) << 8) | this.read(0xFFFC);
 }
 
 CPU6502.prototype.step = function() {
-	this.opcode = this.read( this.PC++ ); 
+	this.opcode = this.read( this.PC++ );
 	CPU6502op[ this.opcode ]( this );
 }
 
@@ -54,13 +54,13 @@ CPU6502.prototype.log = function() {
 // Subroutines - addressing modes & flags
 ////////////////////////////////////////////////////////////////////////////////
 
-CPU6502.prototype.izx = function() { 
-	var a = (this.read(this.PC++) + this.X) & 0xFF; 
+CPU6502.prototype.izx = function() {
+	var a = (this.read(this.PC++) + this.X) & 0xFF;
 	this.addr = (this.read(a+1) << 8) | this.read(a);
 	this.cycles += 6;
 }
 
-CPU6502.prototype.izy = function() { 
+CPU6502.prototype.izy = function() {
 	var a = this.read(this.PC++);
 	var paddr = (this.read((a+1) & 0xFF) << 8) | this.read(a);
 	this.addr = (paddr + this.Y);
@@ -77,39 +77,39 @@ CPU6502.prototype.ind = function() {
 	this.addr = this.read(a);
 	this.addr |= (this.read(a+1) << 8);
 	this.cycles += 5;
-} 
+}
 
-CPU6502.prototype.zp = function() { 
+CPU6502.prototype.zp = function() {
 	this.addr = this.read(this.PC++);
 	this.cycles += 3;
 }
 
-CPU6502.prototype.zpx = function() { 
+CPU6502.prototype.zpx = function() {
 	this.addr = (this.read(this.PC++) + this.X) & 0xFF;
 	this.cycles += 4;
 }
 
-CPU6502.prototype.zpy = function() { 
+CPU6502.prototype.zpy = function() {
 	this.addr = (this.read(this.PC++) + this.Y) & 0xFF;
 	this.cycles += 4;
 }
 
-CPU6502.prototype.imp = function() { 
+CPU6502.prototype.imp = function() {
 	this.cycles += 2;
 }
 
-CPU6502.prototype.imm = function() { 
+CPU6502.prototype.imm = function() {
 	this.addr = this.PC++;
 	this.cycles += 2;
 }
 
-CPU6502.prototype.abs = function() { 
+CPU6502.prototype.abs = function() {
 	this.addr = this.read(this.PC++);
 	this.addr |= (this.read(this.PC++) << 8);
 	this.cycles += 4;
 }
 
-CPU6502.prototype.abx = function() { 
+CPU6502.prototype.abx = function() {
 	var paddr = this.read(this.PC++);
 	paddr |= (this.read(this.PC++) << 8);
 	this.addr = (paddr + this.X);
@@ -120,7 +120,7 @@ CPU6502.prototype.abx = function() {
 	}
 }
 
-CPU6502.prototype.aby = function() { 
+CPU6502.prototype.aby = function() {
 	var paddr = this.read(this.PC++);
 	paddr |= (this.read(this.PC++) << 8);
 	this.addr = (paddr + this.Y);
@@ -131,7 +131,7 @@ CPU6502.prototype.aby = function() {
 	}
 }
 
-CPU6502.prototype.rel = function() { 
+CPU6502.prototype.rel = function() {
 	this.addr = this.read(this.PC++);
 	if (this.addr & 0x80) {
 		this.addr -= 0x100;
@@ -142,7 +142,7 @@ CPU6502.prototype.rel = function() {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CPU6502.prototype.rmw = function() { 
+CPU6502.prototype.rmw = function() {
 	this.write(this.addr, this.tmp & 0xFF);
 	this.cycles += 2;
 }
@@ -182,7 +182,7 @@ CPU6502.prototype.branch = function(v) {
 ////////////////////////////////////////////////////////////////////////////////
 // Subroutines - instructions
 ////////////////////////////////////////////////////////////////////////////////
-CPU6502.prototype.adc = function() { 
+CPU6502.prototype.adc = function() {
 	var v = this.read(this.addr);
 	var c = this.C;
 	var r = this.A + v + c;
@@ -205,30 +205,30 @@ CPU6502.prototype.adc = function() {
 	}
 }
 
-CPU6502.prototype.and = function() { 
-	this.A &= this.read(this.addr); 
-	this.fnz(this.A); 
+CPU6502.prototype.and = function() {
+	this.A &= this.read(this.addr);
+	this.fnz(this.A);
 }
 
-CPU6502.prototype.asl = function() { 
+CPU6502.prototype.asl = function() {
 	this.tmp = this.read(this.addr) << 1;
 	this.fnzc(this.tmp);
 	this.tmp &= 0xFF;
 }
-CPU6502.prototype.asla = function() { 
+CPU6502.prototype.asla = function() {
 	this.tmp = this.A << 1;
 	this.fnzc(this.tmp);
 	this.A = this.tmp & 0xFF;
 }
 
-CPU6502.prototype.bit = function() { 
+CPU6502.prototype.bit = function() {
 	this.tmp = this.read(this.addr);
 	this.N = ((this.tmp & 0x80) != 0) ? 1 : 0;
 	this.V = ((this.tmp & 0x40) != 0) ? 1 : 0;
 	this.Z = ((this.tmp & this.A) == 0) ? 1 : 0;
 }
 
-CPU6502.prototype.brk = function() { 
+CPU6502.prototype.brk = function() {
 	this.PC++;
 	this.write(this.S + 0x100, this.PC >> 8);
 	this.S = (this.S - 1) & 0xFF;
@@ -264,94 +264,94 @@ CPU6502.prototype.cld = function() { this.D = 0; }
 CPU6502.prototype.cli = function() { this.I = 0; }
 CPU6502.prototype.clv = function() { this.V = 0; }
 
-CPU6502.prototype.cmp = function() { 
+CPU6502.prototype.cmp = function() {
 	this.fnzb( this.A - this.read(this.addr) );
 }
 
-CPU6502.prototype.cpx = function() { 
+CPU6502.prototype.cpx = function() {
 	this.fnzb( this.X - this.read(this.addr) );
 }
 
-CPU6502.prototype.cpy = function() { 
+CPU6502.prototype.cpy = function() {
 	this.fnzb( this.Y - this.read(this.addr) );
 }
 
-CPU6502.prototype.dec = function() { 
+CPU6502.prototype.dec = function() {
 	this.tmp = (this.read(this.addr) - 1) & 0xFF;
 	this.fnz(this.tmp);
 }
 
-CPU6502.prototype.dex = function() { 
+CPU6502.prototype.dex = function() {
 	this.X = (this.X - 1) & 0xFF;
 	this.fnz(this.X);
 }
 
-CPU6502.prototype.dey = function() { 
+CPU6502.prototype.dey = function() {
 	this.Y = (this.Y - 1) & 0xFF;
 	this.fnz(this.Y);
 }
 
-CPU6502.prototype.eor = function() { 
-	this.A ^= this.read(this.addr); 
-	this.fnz(this.A); 
+CPU6502.prototype.eor = function() {
+	this.A ^= this.read(this.addr);
+	this.fnz(this.A);
 }
 
-CPU6502.prototype.inc = function() { 
+CPU6502.prototype.inc = function() {
 	this.tmp = (this.read(this.addr) + 1) & 0xFF;
 	this.fnz(this.tmp);
 }
 
-CPU6502.prototype.inx = function() { 
+CPU6502.prototype.inx = function() {
 	this.X = (this.X + 1) & 0xFF;
 	this.fnz(this.X);
 }
 
-CPU6502.prototype.iny = function() { 
+CPU6502.prototype.iny = function() {
 	this.Y = (this.Y + 1) & 0xFF;
 	this.fnz(this.Y);
 }
 
-CPU6502.prototype.jmp = function() { 
+CPU6502.prototype.jmp = function() {
 	this.PC = this.addr;
 	this.cycles--;
 }
 
-CPU6502.prototype.jsr = function() { 
-	this.write(this.S + 0x100, this.PC >> 8);
+CPU6502.prototype.jsr = function() {
+	this.write(this.S + 0x100, (this.PC - 1) >> 8);
 	this.S = (this.S - 1) & 0xFF;
-	this.write(this.S + 0x100, this.PC & 0xFF);
+	this.write(this.S + 0x100, (this.PC - 1) & 0xFF);
 	this.S = (this.S - 1) & 0xFF;
 	this.PC = this.addr;
 	this.cycles += 2;
 }
 
-CPU6502.prototype.lda = function() { 
-	this.A = this.read(this.addr); 
-	this.fnz(this.A); 
+CPU6502.prototype.lda = function() {
+	this.A = this.read(this.addr);
+	this.fnz(this.A);
 }
 
-CPU6502.prototype.ldx = function() { 
-	this.X = this.read(this.addr); 
-	this.fnz(this.X); 
+CPU6502.prototype.ldx = function() {
+	this.X = this.read(this.addr);
+	this.fnz(this.X);
 }
 
-CPU6502.prototype.ldy = function() { 
-	this.Y = this.read(this.addr); 
-	this.fnz(this.Y); 
+CPU6502.prototype.ldy = function() {
+	this.Y = this.read(this.addr);
+	this.fnz(this.Y);
 }
 
-CPU6502.prototype.ora = function() { 
-	this.A |= this.read(this.addr); 
-	this.fnz(this.A); 
+CPU6502.prototype.ora = function() {
+	this.A |= this.read(this.addr);
+	this.fnz(this.A);
 }
 
-CPU6502.prototype.rol = function() { 
-	this.tmp = (this.read(this.addr) << 1) | this.C;  
+CPU6502.prototype.rol = function() {
+	this.tmp = (this.read(this.addr) << 1) | this.C;
 	this.fnzc(this.tmp);
 	this.tmp &= 0xFF;
 }
-CPU6502.prototype.rola = function() { 
-	this.tmp = (this.A << 1) | this.C;  
+CPU6502.prototype.rola = function() {
+	this.tmp = (this.A << 1) | this.C;
 	this.fnzc(this.tmp);
 	this.A = this.tmp & 0xFF;
 }
@@ -362,21 +362,21 @@ CPU6502.prototype.ror = function() {
 	this.fnzc(this.tmp);
 	this.tmp &= 0xFF;
 }
-CPU6502.prototype.rora = function() { 
+CPU6502.prototype.rora = function() {
 	this.tmp = ((this.A & 1) << 8) | (this.C << 7) | (this.A >> 1);
 	this.fnzc(this.tmp);
 	this.A = this.tmp & 0xFF;
 }
 
 
-CPU6502.prototype.lsr = function() { 
+CPU6502.prototype.lsr = function() {
 	this.tmp = this.read(this.addr);
 	this.tmp = ((this.tmp & 1) << 8) | (this.tmp >> 1);
 	this.fnzc(this.tmp);
 	this.tmp &= 0xFF;
 }
-CPU6502.prototype.lsra = function() { 
-	this.tmp = ((this.A & 1) << 8) | (this.A >> 1);  
+CPU6502.prototype.lsra = function() {
+	this.tmp = ((this.A & 1) << 8) | (this.A >> 1);
 	this.fnzc(this.tmp);
 	this.A = this.tmp & 0xFF;
 }
@@ -384,13 +384,13 @@ CPU6502.prototype.lsra = function() {
 
 CPU6502.prototype.nop = function() { }
 
-CPU6502.prototype.pha = function() { 
+CPU6502.prototype.pha = function() {
 	this.write(this.S + 0x100, this.A);
 	this.S = (this.S - 1) & 0xFF;
 	this.cycles++;
 }
 
-CPU6502.prototype.php = function() { 
+CPU6502.prototype.php = function() {
 	var v = this.N << 7;
 	v |= this.V << 6;
 	v |= 3 << 4;
@@ -403,14 +403,14 @@ CPU6502.prototype.php = function() {
 	this.cycles++;
 }
 
-CPU6502.prototype.pla = function() { 
+CPU6502.prototype.pla = function() {
 	this.S = (this.S + 1) & 0xFF;
 	this.A = this.read(this.S + 0x100);
 	this.fnz(this.A);
 	this.cycles += 2;
 }
 
-CPU6502.prototype.plp = function() { 
+CPU6502.prototype.plp = function() {
 	this.S = (this.S + 1) & 0xFF;
 	this.tmp = this.read(this.S + 0x100);
 	this.N = ((this.tmp & 0x80) != 0) ? 1 : 0;
@@ -422,7 +422,7 @@ CPU6502.prototype.plp = function() {
 	this.cycles += 2;
 }
 
-CPU6502.prototype.rti = function() { 
+CPU6502.prototype.rti = function() {
 	this.S = (this.S + 1) & 0xFF;
 	this.tmp = this.read(this.S + 0x100);
 	this.N = ((this.tmp & 0x80) != 0) ? 1 : 0;
@@ -438,15 +438,16 @@ CPU6502.prototype.rti = function() {
 	this.cycles += 4;
 }
 
-CPU6502.prototype.rts = function() { 
+CPU6502.prototype.rts = function() {
 	this.S = (this.S + 1) & 0xFF;
 	this.PC = this.read(this.S + 0x100);
 	this.S = (this.S + 1) & 0xFF;
 	this.PC |= this.read(this.S + 0x100) << 8;
+	this.PC++;
 	this.cycles += 4;
 }
 
-CPU6502.prototype.sbc = function() { 
+CPU6502.prototype.sbc = function() {
 	var v = this.read(this.addr);
 	var c = 1 - this.C;
 	var r = this.A - v - c;
@@ -475,50 +476,50 @@ CPU6502.prototype.sed = function() { this.D = 1; }
 CPU6502.prototype.sei = function() { this.I = 1; }
 
 
-CPU6502.prototype.slo = function() { 
+CPU6502.prototype.slo = function() {
 	this.tmp = this.read(this.addr) << 1;
 	this.tmp |= this.A;
 	this.fnzc(this.tmp);
 	this.A = this.tmp & 0xFF;
 }
 
-CPU6502.prototype.sta = function() { 
+CPU6502.prototype.sta = function() {
 	this.write(this.addr, this.A);
 }
 
-CPU6502.prototype.stx = function() { 
+CPU6502.prototype.stx = function() {
 	this.write(this.addr, this.X);
 }
 
-CPU6502.prototype.sty = function() { 
+CPU6502.prototype.sty = function() {
 	this.write(this.addr, this.Y);
 }
 
-CPU6502.prototype.tax = function() { 
+CPU6502.prototype.tax = function() {
 	this.X = this.A;
 	this.fnz(this.X);
 }
 
-CPU6502.prototype.tay = function() { 
+CPU6502.prototype.tay = function() {
 	this.Y = this.A;
 	this.fnz(this.Y);
 }
 
-CPU6502.prototype.tsx = function() { 
+CPU6502.prototype.tsx = function() {
 	this.X = this.S;
 	this.fnz(this.X);
 }
 
-CPU6502.prototype.txa = function() { 
+CPU6502.prototype.txa = function() {
 	this.A = this.X;
 	this.fnz(this.A);
 }
 
-CPU6502.prototype.txs = function() { 
+CPU6502.prototype.txs = function() {
 	this.S = this.X;
 }
 
-CPU6502.prototype.tya = function() { 
+CPU6502.prototype.tya = function() {
 	this.A = this.Y;
 	this.fnz(this.A);
 }
@@ -825,5 +826,3 @@ while(cpu.cycles < 1000000) {
 }
 console.log(cpu.cycles);
 console.log(Date.now() - start);
-
-
