@@ -205,9 +205,54 @@ CPU6502.prototype.adc = function() {
 	}
 }
 
+CPU6502.prototype.ahx = function() {
+	this.tmp = ((this.addr >> 8) + 1) & this.A & this.X;
+	this.write(this.addr, this.tmp & 0xFF);
+}
+
+CPU6502.prototype.alr = function() {
+	this.tmp = this.read(this.addr) & this.A;
+	this.tmp = ((this.tmp & 1) << 8) | (this.tmp >> 1);
+	this.fnzc(this.tmp);
+	this.A = this.tmp & 0xFF;
+}
+
+CPU6502.prototype.anc = function() {
+	this.tmp = this.read(this.addr);
+	this.tmp |= ((this.tmp & 0x80) & (this.A & 0x80)) << 1;
+	this.fnzc(this.tmp);
+	this.A = this.tmp & 0xFF;
+}
+
 CPU6502.prototype.and = function() {
 	this.A &= this.read(this.addr);
 	this.fnz(this.A);
+}
+
+CPU6502.prototype.ane = function() {
+	this.tmp = this.read(this.addr) & this.A & (this.A | 0xEE);
+	this.fnz(this.tmp);
+	this.A = this.tmp & 0xFF;
+}
+
+CPU6502.prototype.arr = function() {
+	this.tmp = this.read(this.adfdr) & this.A;
+	this.C = ((this.tmp & 0x80) != 0);
+	this.V = ((((this.tmp >> 7) & 1) ^ ((this.tmp >> 6) & 1)) != 0);
+	if (this.D) {
+		var al = (this.tmp & 0x0F) + (this.tmp & 1);
+		if (al > 5) al += 6;
+		var ah = ((this.tmp >> 4) & 0x0F) + ((this.tmp >> 4) & 1);
+		if (ah > 5) {
+			al += 6;
+			this.C = true;
+		} else {
+			this.C = false;
+		}
+		this.tmp = (ah << 4) | al;
+	}
+	this.fnz(this.tmp);
+	this.A = this.tmp & 0xFF;
 }
 
 CPU6502.prototype.asl = function() {
@@ -276,6 +321,12 @@ CPU6502.prototype.cpy = function() {
 	this.fnzb( this.Y - this.read(this.addr) );
 }
 
+CPU6502.prototype.dcp = function() {
+	this.tmp = (this.read(this.addr) - 1) & 0xFF;
+	this.tmp = this.A - this.tmp;
+	this.fnz(this.tmp);
+}
+
 CPU6502.prototype.dec = function() {
 	this.tmp = (this.read(this.addr) - 1) & 0xFF;
 	this.fnz(this.tmp);
@@ -311,6 +362,29 @@ CPU6502.prototype.iny = function() {
 	this.fnz(this.Y);
 }
 
+CPU6502.prototype.isc = function() {
+	var v = (this.read(this.addr) + 1) & 0xFF;
+	var c = 1 - (this.C ? 1 : 0);
+	var r = this.A - v - c;
+	if (this.D) {
+		var al = (this.A & 0x0F) - (v & 0x0F) - c;
+		if (al > 0x80) al -= 6;
+		var ah = (this.A >> 4) - (v >> 4) - ((al > 0x80) ? 1 : 0);
+		this.Z = ((r & 0xFF) == 0);
+		this.N = ((r & 0x80) != 0);
+		this.V = (((this.A ^ v) & (this.A ^ r) & 0x80) != 0);
+		this.C = ((this.r & 0x100) != 0) ? 0 : 1;
+		if (ah > 0x80) ah -= 6;
+		this.A = ((ah << 4) | (al & 15)) & 0xFF;
+	} else {
+		this.Z = ((r & 0xFF) == 0);
+		this.N = ((r & 0x80) != 0);
+		this.V = (((this.A ^ v) & (this.A ^ r) & 0x80) != 0);
+		this.C = ((r & 0x100) != 0) ? 0 : 1;
+		this.A = r & 0xFF;
+	}
+}
+
 CPU6502.prototype.jmp = function() {
 	this.PC = this.addr;
 	this.cycles--;
@@ -323,6 +397,16 @@ CPU6502.prototype.jsr = function() {
 	this.S = (this.S - 1) & 0xFF;
 	this.PC = this.addr;
 	this.cycles += 2;
+}
+
+CPU6502.prototype.las = function() {
+	this.S = this.X = this.A = this.read(this.addr) & this.S;
+	this.fnz(this.A);
+}
+
+CPU6502.prototype.lax = function() {
+	this.X = this.A = this.read(this.addr);
+	this.fnz(this.A);
 }
 
 CPU6502.prototype.lda = function() {
@@ -350,7 +434,7 @@ CPU6502.prototype.rol = function() {
 	this.fnzc(this.tmp);
 	this.tmp &= 0xFF;
 }
-CPU6502.prototype.rola = function() {
+CPU6502.prototype.rla = function() {
 	this.tmp = (this.A << 1) | this.C;
 	this.fnzc(this.tmp);
 	this.A = this.tmp & 0xFF;
@@ -362,7 +446,7 @@ CPU6502.prototype.ror = function() {
 	this.fnzc(this.tmp);
 	this.tmp &= 0xFF;
 }
-CPU6502.prototype.rora = function() {
+CPU6502.prototype.rra = function() {
 	this.tmp = ((this.A & 1) << 8) | (this.C << 7) | (this.A >> 1);
 	this.fnzc(this.tmp);
 	this.A = this.tmp & 0xFF;
@@ -470,15 +554,43 @@ CPU6502.prototype.sbc = function() {
 	}
 }
 
+CPU6502.prototype.sbx = function() {
+	this.tmp = this.read(this.addr) - (this.A & this.X);
+	this.fnzb(this.tmp);
+	this.X = (this.tmp & 0xFF);
+}
 
 CPU6502.prototype.sec = function() { this.C = 1; }
 CPU6502.prototype.sed = function() { this.D = 1; }
 CPU6502.prototype.sei = function() { this.I = 1; }
 
+CPU6502.prototype.shs = function() {
+	this.tmp = ((this.addr >> 8) + 1) & this.A & this.X;
+	this.write(this.addr, this.tmp & 0xFF);
+	this.S = (this.tmp & 0xFF);
+}
+
+CPU6502.prototype.shx = function() {
+	this.tmp = ((this.addr >> 8) + 1) & this.X;
+	this.write(this.addr, this.tmp & 0xFF);
+}
+
+CPU6502.prototype.shy = function() {
+	this.tmp = ((this.addr >> 8) + 1) & this.Y;
+	this.write(this.addr, this.tmp & 0xFF);
+}
 
 CPU6502.prototype.slo = function() {
 	this.tmp = this.read(this.addr) << 1;
 	this.tmp |= this.A;
+	this.fnzc(this.tmp);
+	this.A = this.tmp & 0xFF;
+}
+
+CPU6502.prototype.sre = function() {
+	var v = this.read(this.addr);
+	this.tmp = ((v & 1) << 8) | (v >> 1);
+	this.tmp ^= this.A;
 	this.fnzc(this.tmp);
 	this.A = this.tmp & 0xFF;
 }
@@ -574,7 +686,7 @@ var CPU6502op = new Array();
 /* *RLA zp  */ CPU6502op[0x27] = function(m) { m.zp(); m.rla(); m.rmw(); };
 /*  PLP     */ CPU6502op[0x28] = function(m) { m.imp(); m.plp(); };
 /*  AND imm */ CPU6502op[0x29] = function(m) { m.imm(); m.and(); };
-/*  ROL     */ CPU6502op[0x2A] = function(m) { m.imp(); m.rola(); };
+/*  ROL     */ CPU6502op[0x2A] = function(m) { m.imp(); m.rla(); };
 /* *ANC imm */ CPU6502op[0x2B] = function(m) { m.imm(); m.anc(); };
 /*  BIT abs */ CPU6502op[0x2C] = function(m) { m.abs(); m.bit(); };
 /*  AND abs */ CPU6502op[0x2D] = function(m) { m.abs(); m.and(); };
@@ -642,7 +754,7 @@ var CPU6502op = new Array();
 /* *RRA zp  */ CPU6502op[0x67] = function(m) { m.zp(); m.rra(); m.rmw(); };
 /*  PLA     */ CPU6502op[0x68] = function(m) { m.imp(); m.pla(); };
 /*  ADC imm */ CPU6502op[0x69] = function(m) { m.imm(); m.adc(); };
-/*  ROR     */ CPU6502op[0x6A] = function(m) { m.imp(); m.rora(); };
+/*  ROR     */ CPU6502op[0x6A] = function(m) { m.imp(); m.rra(); };
 /* *ARR imm */ CPU6502op[0x6B] = function(m) { m.imm(); m.arr(); };
 /*  JMP ind */ CPU6502op[0x6C] = function(m) { m.ind(); m.jmp(); };
 /*  ADC abs */ CPU6502op[0x6D] = function(m) { m.abs(); m.adc(); };
