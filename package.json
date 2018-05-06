@@ -11,14 +11,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/SuperDoxin/6502.js.git"
+    "url": "git+https://github.com/Torlus/6502.js.git"
   },
   "author": "",
   "license": "GPL-2.0-only",
   "bugs": {
-    "url": "https://github.com/SuperDoxin/6502.js/issues"
+    "url": "https://github.com/Torlus/6502.js/issues"
   },
-  "homepage": "https://github.com/SuperDoxin/6502.js#readme",
+  "homepage": "https://github.com/Torlus/6502.js#readme",
   "devDependencies": {
     "babel-core": "^6.26.3",
     "babel-loader": "^7.1.4",
