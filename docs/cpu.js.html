@@ -1,4 +1,32 @@
-import CPU6502op from './opcodes.js'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: cpu.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: cpu.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import CPU6502op from './opcodes.js'
 
 /**
  * A 6502 processor emulator
@@ -31,7 +59,7 @@ class CPU6502{
 	    this.N = 0; this.Z = 1; this.C = 0; this.V = 0;
 	    this.I = 0; this.D = 0;
 
-	    this.PC = (this.read(0xFFFD) << 8) | this.read(0xFFFC);
+	    this.PC = (this.read(0xFFFD) &lt;&lt; 8) | this.read(0xFFFC);
     }
     
     /**
@@ -80,20 +108,20 @@ class CPU6502{
      }
     
     ////////////////////////////////////////////////////////////////////////////////
-    // Subroutines - addressing modes & flags
+    // Subroutines - addressing modes &amp; flags
     ////////////////////////////////////////////////////////////////////////////////
 
     izx() {
-	    var a = (this.read(this.PC++) + this.X) & 0xFF;
-	    this.addr = (this.read(a+1) << 8) | this.read(a);
+	    var a = (this.read(this.PC++) + this.X) &amp; 0xFF;
+	    this.addr = (this.read(a+1) &lt;&lt; 8) | this.read(a);
 	    this.cycles += 6;
     }
 
     izy() {
 	    var a = this.read(this.PC++);
-	    var paddr = (this.read((a+1) & 0xFF) << 8) | this.read(a);
+	    var paddr = (this.read((a+1) &amp; 0xFF) &lt;&lt; 8) | this.read(a);
 	    this.addr = (paddr + this.Y);
-	    if ( (paddr & 0x100) != (this.addr & 0x100) ) {
+	    if ( (paddr &amp; 0x100) != (this.addr &amp; 0x100) ) {
 		    this.cycles += 6;
 	    } else {
 		    this.cycles += 5;
@@ -102,9 +130,9 @@ class CPU6502{
 
     ind() {
 	    var a = this.read(this.PC);
-	    a |= this.read( (this.PC & 0xFF00) | ((this.PC + 1) & 0xFF) ) << 8;
+	    a |= this.read( (this.PC &amp; 0xFF00) | ((this.PC + 1) &amp; 0xFF) ) &lt;&lt; 8;
 	    this.addr = this.read(a);
-	    this.addr |= (this.read(a+1) << 8);
+	    this.addr |= (this.read(a+1) &lt;&lt; 8);
 	    this.cycles += 5;
     }
 
@@ -114,12 +142,12 @@ class CPU6502{
     }
 
     zpx() {
-	    this.addr = (this.read(this.PC++) + this.X) & 0xFF;
+	    this.addr = (this.read(this.PC++) + this.X) &amp; 0xFF;
 	    this.cycles += 4;
     }
 
     zpy() {
-	    this.addr = (this.read(this.PC++) + this.Y) & 0xFF;
+	    this.addr = (this.read(this.PC++) + this.Y) &amp; 0xFF;
 	    this.cycles += 4;
     }
 
@@ -134,15 +162,15 @@ class CPU6502{
 
     abs() {
 	    this.addr = this.read(this.PC++);
-	    this.addr |= (this.read(this.PC++) << 8);
+	    this.addr |= (this.read(this.PC++) &lt;&lt; 8);
 	    this.cycles += 4;
     }
 
     abx() {
 	    var paddr = this.read(this.PC++);
-	    paddr |= (this.read(this.PC++) << 8);
+	    paddr |= (this.read(this.PC++) &lt;&lt; 8);
 	    this.addr = (paddr + this.X);
-	    if ( (paddr & 0x100) != (this.addr & 0x100) ) {
+	    if ( (paddr &amp; 0x100) != (this.addr &amp; 0x100) ) {
 		    this.cycles += 5;
 	    } else {
 		    this.cycles += 4;
@@ -151,9 +179,9 @@ class CPU6502{
 
     aby() {
 	    var paddr = this.read(this.PC++);
-	    paddr |= (this.read(this.PC++) << 8);
+	    paddr |= (this.read(this.PC++) &lt;&lt; 8);
 	    this.addr = (paddr + this.Y);
-	    if ( (paddr & 0x100) != (this.addr & 0x100) ) {
+	    if ( (paddr &amp; 0x100) != (this.addr &amp; 0x100) ) {
 		    this.cycles += 5;
 	    } else {
 		    this.cycles += 4;
@@ -162,7 +190,7 @@ class CPU6502{
 
     rel() {
 	    this.addr = this.read(this.PC++);
-	    if (this.addr & 0x80) {
+	    if (this.addr &amp; 0x80) {
 		    this.addr -= 0x100;
 	    }
 	    this.addr += this.PC;
@@ -170,32 +198,32 @@ class CPU6502{
     }
 
     rmw() {
-	    this.write(this.addr, this.tmp & 0xFF);
+	    this.write(this.addr, this.tmp &amp; 0xFF);
 	    this.cycles += 2;
     }
 
     fnz(v) {
-	    this.Z = ((v & 0xFF) == 0) ? 1 : 0;
-	    this.N = ((v & 0x80) != 0) ? 1 : 0;
+	    this.Z = ((v &amp; 0xFF) == 0) ? 1 : 0;
+	    this.N = ((v &amp; 0x80) != 0) ? 1 : 0;
     }
 
     // Borrow
     fnzb(v) {
-	    this.Z = ((v & 0xFF) == 0) ? 1 : 0;
-	    this.N = ((v & 0x80) != 0) ? 1 : 0;
-	    this.C = ((v & 0x100) != 0) ? 0 : 1;
+	    this.Z = ((v &amp; 0xFF) == 0) ? 1 : 0;
+	    this.N = ((v &amp; 0x80) != 0) ? 1 : 0;
+	    this.C = ((v &amp; 0x100) != 0) ? 0 : 1;
     }
 
     // Carry
     fnzc(v) {
-	    this.Z = ((v & 0xFF) == 0) ? 1 : 0;
-	    this.N = ((v & 0x80) != 0) ? 1 : 0;
-	    this.C = ((v & 0x100) != 0) ? 1 : 0;
+	    this.Z = ((v &amp; 0xFF) == 0) ? 1 : 0;
+	    this.N = ((v &amp; 0x80) != 0) ? 1 : 0;
+	    this.C = ((v &amp; 0x100) != 0) ? 1 : 0;
     }
 
     branch(v) {
 	    if (v) {
-		    if ( (this.addr & 0x100) != (this.PC & 0x100) ) {
+		    if ( (this.addr &amp; 0x100) != (this.PC &amp; 0x100) ) {
 			    this.cycles += 2;
 		    } else {
 			    this.cycles += 1;
@@ -212,110 +240,110 @@ class CPU6502{
 	    var c = this.C;
 	    var r = this.A + v + c;
 	    if (this.D) {
-		    var al = (this.A & 0x0F) + (v & 0x0F) + c;
+		    var al = (this.A &amp; 0x0F) + (v &amp; 0x0F) + c;
 		    if (al > 9) al += 6;
 		    var ah = (this.A >> 4) + (v >> 4) + ((al > 15) ? 1 : 0);
-		    this.Z = ((r & 0xFF) == 0) ? 1 : 0;
-		    this.N = ((ah & 8) != 0) ? 1 : 0;
-		    this.V = ((~(this.A ^ v) & (this.A ^ (ah << 4)) & 0x80) != 0) ? 1 : 0;
+		    this.Z = ((r &amp; 0xFF) == 0) ? 1 : 0;
+		    this.N = ((ah &amp; 8) != 0) ? 1 : 0;
+		    this.V = ((~(this.A ^ v) &amp; (this.A ^ (ah &lt;&lt; 4)) &amp; 0x80) != 0) ? 1 : 0;
 		    if (ah > 9) ah += 6;
 		    this.C = (ah > 15) ? 1 : 0;
-		    this.A = ((ah << 4) | (al & 15)) & 0xFF;
+		    this.A = ((ah &lt;&lt; 4) | (al &amp; 15)) &amp; 0xFF;
 	    } else {
-		    this.Z = ((r & 0xFF) == 0) ? 1 : 0;
-		    this.N = ((r & 0x80) != 0) ? 1 : 0;
-		    this.V = ((~(this.A ^ v) & (this.A ^ r) & 0x80) != 0) ? 1 : 0;
-		    this.C = ((r & 0x100) != 0) ? 1 : 0;
-		    this.A = r & 0xFF;
+		    this.Z = ((r &amp; 0xFF) == 0) ? 1 : 0;
+		    this.N = ((r &amp; 0x80) != 0) ? 1 : 0;
+		    this.V = ((~(this.A ^ v) &amp; (this.A ^ r) &amp; 0x80) != 0) ? 1 : 0;
+		    this.C = ((r &amp; 0x100) != 0) ? 1 : 0;
+		    this.A = r &amp; 0xFF;
 	    }
     }
 
     ahx() {
-	    this.tmp = ((this.addr >> 8) + 1) & this.A & this.X;
-	    this.write(this.addr, this.tmp & 0xFF);
+	    this.tmp = ((this.addr >> 8) + 1) &amp; this.A &amp; this.X;
+	    this.write(this.addr, this.tmp &amp; 0xFF);
     }
 
     alr() {
-	    this.tmp = this.read(this.addr) & this.A;
-	    this.tmp = ((this.tmp & 1) << 8) | (this.tmp >> 1);
+	    this.tmp = this.read(this.addr) &amp; this.A;
+	    this.tmp = ((this.tmp &amp; 1) &lt;&lt; 8) | (this.tmp >> 1);
 	    this.fnzc(this.tmp);
-	    this.A = this.tmp & 0xFF;
+	    this.A = this.tmp &amp; 0xFF;
     }
 
     anc() {
 	    this.tmp = this.read(this.addr);
-	    this.tmp |= ((this.tmp & 0x80) & (this.A & 0x80)) << 1;
+	    this.tmp |= ((this.tmp &amp; 0x80) &amp; (this.A &amp; 0x80)) &lt;&lt; 1;
 	    this.fnzc(this.tmp);
-	    this.A = this.tmp & 0xFF;
+	    this.A = this.tmp &amp; 0xFF;
     }
 
     and() {
-	    this.A &= this.read(this.addr);
+	    this.A &amp;= this.read(this.addr);
 	    this.fnz(this.A);
     }
 
     ane() {
-	    this.tmp = this.read(this.addr) & this.A & (this.A | 0xEE);
+	    this.tmp = this.read(this.addr) &amp; this.A &amp; (this.A | 0xEE);
 	    this.fnz(this.tmp);
-	    this.A = this.tmp & 0xFF;
+	    this.A = this.tmp &amp; 0xFF;
     }
 
     arr() {
-	    this.tmp = this.read(this.adfdr) & this.A;
-	    this.C = ((this.tmp & 0x80) != 0);
-	    this.V = ((((this.tmp >> 7) & 1) ^ ((this.tmp >> 6) & 1)) != 0);
+	    this.tmp = this.read(this.adfdr) &amp; this.A;
+	    this.C = ((this.tmp &amp; 0x80) != 0);
+	    this.V = ((((this.tmp >> 7) &amp; 1) ^ ((this.tmp >> 6) &amp; 1)) != 0);
 	    if (this.D) {
-		    var al = (this.tmp & 0x0F) + (this.tmp & 1);
+		    var al = (this.tmp &amp; 0x0F) + (this.tmp &amp; 1);
 		    if (al > 5) al += 6;
-		    var ah = ((this.tmp >> 4) & 0x0F) + ((this.tmp >> 4) & 1);
+		    var ah = ((this.tmp >> 4) &amp; 0x0F) + ((this.tmp >> 4) &amp; 1);
 		    if (ah > 5) {
 			    al += 6;
 			    this.C = true;
 		    } else {
 			    this.C = false;
 		    }
-		    this.tmp = (ah << 4) | al;
+		    this.tmp = (ah &lt;&lt; 4) | al;
 	    }
 	    this.fnz(this.tmp);
-	    this.A = this.tmp & 0xFF;
+	    this.A = this.tmp &amp; 0xFF;
     }
 
     asl() {
-	    this.tmp = this.read(this.addr) << 1;
+	    this.tmp = this.read(this.addr) &lt;&lt; 1;
 	    this.fnzc(this.tmp);
-	    this.tmp &= 0xFF;
+	    this.tmp &amp;= 0xFF;
     }
     asla() {
-	    this.tmp = this.A << 1;
+	    this.tmp = this.A &lt;&lt; 1;
 	    this.fnzc(this.tmp);
-	    this.A = this.tmp & 0xFF;
+	    this.A = this.tmp &amp; 0xFF;
     }
 
     bit() {
 	    this.tmp = this.read(this.addr);
-	    this.N = ((this.tmp & 0x80) != 0) ? 1 : 0;
-	    this.V = ((this.tmp & 0x40) != 0) ? 1 : 0;
-	    this.Z = ((this.tmp & this.A) == 0) ? 1 : 0;
+	    this.N = ((this.tmp &amp; 0x80) != 0) ? 1 : 0;
+	    this.V = ((this.tmp &amp; 0x40) != 0) ? 1 : 0;
+	    this.Z = ((this.tmp &amp; this.A) == 0) ? 1 : 0;
     }
 
     brk() {
 	    this.PC++;
 	    this.write(this.S + 0x100, this.PC >> 8);
-	    this.S = (this.S - 1) & 0xFF;
-	    this.write(this.S + 0x100, this.PC & 0xFF);
-	    this.S = (this.S - 1) & 0xFF;
-	    var v = this.N << 7;
-	    v |= this.V << 6;
-	    v |= 3 << 4;
-	    v |= this.D << 3;
-	    v |= this.I << 2;
-	    v |= this.Z << 1;
+	    this.S = (this.S - 1) &amp; 0xFF;
+	    this.write(this.S + 0x100, this.PC &amp; 0xFF);
+	    this.S = (this.S - 1) &amp; 0xFF;
+	    var v = this.N &lt;&lt; 7;
+	    v |= this.V &lt;&lt; 6;
+	    v |= 3 &lt;&lt; 4;
+	    v |= this.D &lt;&lt; 3;
+	    v |= this.I &lt;&lt; 2;
+	    v |= this.Z &lt;&lt; 1;
 	    v |= this.C;
 	    this.write(this.S + 0x100, v);
-	    this.S = (this.S - 1) & 0xFF;
+	    this.S = (this.S - 1) &amp; 0xFF;
 	    this.I = 1;
 	    this.D = 0;
-	    this.PC = (this.read(0xFFFF) << 8) | this.read(0xFFFE);
+	    this.PC = (this.read(0xFFFF) &lt;&lt; 8) | this.read(0xFFFE);
 	    this.cycles += 5;
     }
 
@@ -347,23 +375,23 @@ class CPU6502{
     }
 
     dcp() {
-	    this.tmp = (this.read(this.addr) - 1) & 0xFF;
+	    this.tmp = (this.read(this.addr) - 1) &amp; 0xFF;
 	    this.tmp = this.A - this.tmp;
 	    this.fnz(this.tmp);
     }
 
     dec() {
-	    this.tmp = (this.read(this.addr) - 1) & 0xFF;
+	    this.tmp = (this.read(this.addr) - 1) &amp; 0xFF;
 	    this.fnz(this.tmp);
     }
 
     dex() {
-	    this.X = (this.X - 1) & 0xFF;
+	    this.X = (this.X - 1) &amp; 0xFF;
 	    this.fnz(this.X);
     }
 
     dey() {
-	    this.Y = (this.Y - 1) & 0xFF;
+	    this.Y = (this.Y - 1) &amp; 0xFF;
 	    this.fnz(this.Y);
     }
 
@@ -373,40 +401,40 @@ class CPU6502{
     }
 
     inc() {
-	    this.tmp = (this.read(this.addr) + 1) & 0xFF;
+	    this.tmp = (this.read(this.addr) + 1) &amp; 0xFF;
 	    this.fnz(this.tmp);
     }
 
     inx() {
-	    this.X = (this.X + 1) & 0xFF;
+	    this.X = (this.X + 1) &amp; 0xFF;
 	    this.fnz(this.X);
     }
 
     iny() {
-	    this.Y = (this.Y + 1) & 0xFF;
+	    this.Y = (this.Y + 1) &amp; 0xFF;
 	    this.fnz(this.Y);
     }
 
     isc() {
-	    var v = (this.read(this.addr) + 1) & 0xFF;
+	    var v = (this.read(this.addr) + 1) &amp; 0xFF;
 	    var c = 1 - (this.C ? 1 : 0);
 	    var r = this.A - v - c;
 	    if (this.D) {
-		    var al = (this.A & 0x0F) - (v & 0x0F) - c;
+		    var al = (this.A &amp; 0x0F) - (v &amp; 0x0F) - c;
 		    if (al > 0x80) al -= 6;
 		    var ah = (this.A >> 4) - (v >> 4) - ((al > 0x80) ? 1 : 0);
-		    this.Z = ((r & 0xFF) == 0);
-		    this.N = ((r & 0x80) != 0);
-		    this.V = (((this.A ^ v) & (this.A ^ r) & 0x80) != 0);
-		    this.C = ((this.r & 0x100) != 0) ? 0 : 1;
+		    this.Z = ((r &amp; 0xFF) == 0);
+		    this.N = ((r &amp; 0x80) != 0);
+		    this.V = (((this.A ^ v) &amp; (this.A ^ r) &amp; 0x80) != 0);
+		    this.C = ((this.r &amp; 0x100) != 0) ? 0 : 1;
 		    if (ah > 0x80) ah -= 6;
-		    this.A = ((ah << 4) | (al & 15)) & 0xFF;
+		    this.A = ((ah &lt;&lt; 4) | (al &amp; 15)) &amp; 0xFF;
 	    } else {
-		    this.Z = ((r & 0xFF) == 0);
-		    this.N = ((r & 0x80) != 0);
-		    this.V = (((this.A ^ v) & (this.A ^ r) & 0x80) != 0);
-		    this.C = ((r & 0x100) != 0) ? 0 : 1;
-		    this.A = r & 0xFF;
+		    this.Z = ((r &amp; 0xFF) == 0);
+		    this.N = ((r &amp; 0x80) != 0);
+		    this.V = (((this.A ^ v) &amp; (this.A ^ r) &amp; 0x80) != 0);
+		    this.C = ((r &amp; 0x100) != 0) ? 0 : 1;
+		    this.A = r &amp; 0xFF;
 	    }
     }
 
@@ -417,15 +445,15 @@ class CPU6502{
 
     jsr() {
 	    this.write(this.S + 0x100, (this.PC - 1) >> 8);
-	    this.S = (this.S - 1) & 0xFF;
-	    this.write(this.S + 0x100, (this.PC - 1) & 0xFF);
-	    this.S = (this.S - 1) & 0xFF;
+	    this.S = (this.S - 1) &amp; 0xFF;
+	    this.write(this.S + 0x100, (this.PC - 1) &amp; 0xFF);
+	    this.S = (this.S - 1) &amp; 0xFF;
 	    this.PC = this.addr;
 	    this.cycles += 2;
     }
 
     las() {
-	    this.S = this.X = this.A = this.read(this.addr) & this.S;
+	    this.S = this.X = this.A = this.read(this.addr) &amp; this.S;
 	    this.fnz(this.A);
     }
 
@@ -455,39 +483,39 @@ class CPU6502{
     }
 
     rol() {
-	    this.tmp = (this.read(this.addr) << 1) | this.C;
+	    this.tmp = (this.read(this.addr) &lt;&lt; 1) | this.C;
 	    this.fnzc(this.tmp);
-	    this.tmp &= 0xFF;
+	    this.tmp &amp;= 0xFF;
     }
     rla() {
-	    this.tmp = (this.A << 1) | this.C;
+	    this.tmp = (this.A &lt;&lt; 1) | this.C;
 	    this.fnzc(this.tmp);
-	    this.A = this.tmp & 0xFF;
+	    this.A = this.tmp &amp; 0xFF;
     }
 
     ror() {
 	    this.tmp = this.read(this.addr);
-	    this.tmp = ((this.tmp & 1) << 8) | (this.C << 7) | (this.tmp >> 1);
+	    this.tmp = ((this.tmp &amp; 1) &lt;&lt; 8) | (this.C &lt;&lt; 7) | (this.tmp >> 1);
 	    this.fnzc(this.tmp);
-	    this.tmp &= 0xFF;
+	    this.tmp &amp;= 0xFF;
     }
     rra() {
-	    this.tmp = ((this.A & 1) << 8) | (this.C << 7) | (this.A >> 1);
+	    this.tmp = ((this.A &amp; 1) &lt;&lt; 8) | (this.C &lt;&lt; 7) | (this.A >> 1);
 	    this.fnzc(this.tmp);
-	    this.A = this.tmp & 0xFF;
+	    this.A = this.tmp &amp; 0xFF;
     }
 
 
     lsr() {
 	    this.tmp = this.read(this.addr);
-	    this.tmp = ((this.tmp & 1) << 8) | (this.tmp >> 1);
+	    this.tmp = ((this.tmp &amp; 1) &lt;&lt; 8) | (this.tmp >> 1);
 	    this.fnzc(this.tmp);
-	    this.tmp &= 0xFF;
+	    this.tmp &amp;= 0xFF;
     }
     lsra() {
-	    this.tmp = ((this.A & 1) << 8) | (this.A >> 1);
+	    this.tmp = ((this.A &amp; 1) &lt;&lt; 8) | (this.A >> 1);
 	    this.fnzc(this.tmp);
-	    this.A = this.tmp & 0xFF;
+	    this.A = this.tmp &amp; 0xFF;
     }
 
 
@@ -495,63 +523,63 @@ class CPU6502{
 
     pha() {
 	    this.write(this.S + 0x100, this.A);
-	    this.S = (this.S - 1) & 0xFF;
+	    this.S = (this.S - 1) &amp; 0xFF;
 	    this.cycles++;
     }
 
     php() {
-	    var v = this.N << 7;
-	    v |= this.V << 6;
-	    v |= 3 << 4;
-	    v |= this.D << 3;
-	    v |= this.I << 2;
-	    v |= this.Z << 1;
+	    var v = this.N &lt;&lt; 7;
+	    v |= this.V &lt;&lt; 6;
+	    v |= 3 &lt;&lt; 4;
+	    v |= this.D &lt;&lt; 3;
+	    v |= this.I &lt;&lt; 2;
+	    v |= this.Z &lt;&lt; 1;
 	    v |= this.C;
 	    this.write(this.S + 0x100, v);
-	    this.S = (this.S - 1) & 0xFF;
+	    this.S = (this.S - 1) &amp; 0xFF;
 	    this.cycles++;
     }
 
     pla() {
-	    this.S = (this.S + 1) & 0xFF;
+	    this.S = (this.S + 1) &amp; 0xFF;
 	    this.A = this.read(this.S + 0x100);
 	    this.fnz(this.A);
 	    this.cycles += 2;
     }
 
     plp() {
-	    this.S = (this.S + 1) & 0xFF;
+	    this.S = (this.S + 1) &amp; 0xFF;
 	    this.tmp = this.read(this.S + 0x100);
-	    this.N = ((this.tmp & 0x80) != 0) ? 1 : 0;
-	    this.V = ((this.tmp & 0x40) != 0) ? 1 : 0;
-	    this.D = ((this.tmp & 0x08) != 0) ? 1 : 0;
-	    this.I = ((this.tmp & 0x04) != 0) ? 1 : 0;
-	    this.Z = ((this.tmp & 0x02) != 0) ? 1 : 0;
-	    this.C = ((this.tmp & 0x01) != 0) ? 1 : 0;
+	    this.N = ((this.tmp &amp; 0x80) != 0) ? 1 : 0;
+	    this.V = ((this.tmp &amp; 0x40) != 0) ? 1 : 0;
+	    this.D = ((this.tmp &amp; 0x08) != 0) ? 1 : 0;
+	    this.I = ((this.tmp &amp; 0x04) != 0) ? 1 : 0;
+	    this.Z = ((this.tmp &amp; 0x02) != 0) ? 1 : 0;
+	    this.C = ((this.tmp &amp; 0x01) != 0) ? 1 : 0;
 	    this.cycles += 2;
     }
 
     rti() {
-	    this.S = (this.S + 1) & 0xFF;
+	    this.S = (this.S + 1) &amp; 0xFF;
 	    this.tmp = this.read(this.S + 0x100);
-	    this.N = ((this.tmp & 0x80) != 0) ? 1 : 0;
-	    this.V = ((this.tmp & 0x40) != 0) ? 1 : 0;
-	    this.D = ((this.tmp & 0x08) != 0) ? 1 : 0;
-	    this.I = ((this.tmp & 0x04) != 0) ? 1 : 0;
-	    this.Z = ((this.tmp & 0x02) != 0) ? 1 : 0;
-	    this.C = ((this.tmp & 0x01) != 0) ? 1 : 0;
-	    this.S = (this.S + 1) & 0xFF;
+	    this.N = ((this.tmp &amp; 0x80) != 0) ? 1 : 0;
+	    this.V = ((this.tmp &amp; 0x40) != 0) ? 1 : 0;
+	    this.D = ((this.tmp &amp; 0x08) != 0) ? 1 : 0;
+	    this.I = ((this.tmp &amp; 0x04) != 0) ? 1 : 0;
+	    this.Z = ((this.tmp &amp; 0x02) != 0) ? 1 : 0;
+	    this.C = ((this.tmp &amp; 0x01) != 0) ? 1 : 0;
+	    this.S = (this.S + 1) &amp; 0xFF;
 	    this.PC = this.read(this.S + 0x100);
-	    this.S = (this.S + 1) & 0xFF;
-	    this.PC |= this.read(this.S + 0x100) << 8;
+	    this.S = (this.S + 1) &amp; 0xFF;
+	    this.PC |= this.read(this.S + 0x100) &lt;&lt; 8;
 	    this.cycles += 4;
     }
 
     rts() {
-	    this.S = (this.S + 1) & 0xFF;
+	    this.S = (this.S + 1) &amp; 0xFF;
 	    this.PC = this.read(this.S + 0x100);
-	    this.S = (this.S + 1) & 0xFF;
-	    this.PC |= this.read(this.S + 0x100) << 8;
+	    this.S = (this.S + 1) &amp; 0xFF;
+	    this.PC |= this.read(this.S + 0x100) &lt;&lt; 8;
 	    this.PC++;
 	    this.cycles += 4;
     }
@@ -561,28 +589,28 @@ class CPU6502{
 	    var c = 1 - this.C;
 	    var r = this.A - v - c;
 	    if (this.D) {
-		    var al = (this.A & 0x0F) - (v & 0x0F) - c;
-		    if (al < 0) al -= 6;
-		    var ah = (this.A >> 4) - (v >> 4) - ((al < 0) ? 1 : 0);
-		    this.Z = ((r & 0xFF) == 0) ? 1 : 0;
-		    this.N = ((r & 0x80) != 0) ? 1 : 0;
-		    this.V = (((this.A ^ v) & (this.A ^ r) & 0x80) != 0) ? 1 : 0;
-		    this.C = ((r & 0x100) != 0) ? 0 : 1;
-		    if (ah < 0) ah -= 6;
-		    this.A = ((ah << 4) | (al & 15)) & 0xFF;
+		    var al = (this.A &amp; 0x0F) - (v &amp; 0x0F) - c;
+		    if (al &lt; 0) al -= 6;
+		    var ah = (this.A >> 4) - (v >> 4) - ((al &lt; 0) ? 1 : 0);
+		    this.Z = ((r &amp; 0xFF) == 0) ? 1 : 0;
+		    this.N = ((r &amp; 0x80) != 0) ? 1 : 0;
+		    this.V = (((this.A ^ v) &amp; (this.A ^ r) &amp; 0x80) != 0) ? 1 : 0;
+		    this.C = ((r &amp; 0x100) != 0) ? 0 : 1;
+		    if (ah &lt; 0) ah -= 6;
+		    this.A = ((ah &lt;&lt; 4) | (al &amp; 15)) &amp; 0xFF;
 	    } else {
-		    this.Z = ((r & 0xFF) == 0) ? 1 : 0;
-		    this.N = ((r & 0x80) != 0) ? 1 : 0;
-		    this.V = (((this.A ^ v) & (this.A ^ r) & 0x80) != 0) ? 1 : 0;
-		    this.C = ((r & 0x100) != 0) ? 0 : 1;
-		    this.A = r & 0xFF;
+		    this.Z = ((r &amp; 0xFF) == 0) ? 1 : 0;
+		    this.N = ((r &amp; 0x80) != 0) ? 1 : 0;
+		    this.V = (((this.A ^ v) &amp; (this.A ^ r) &amp; 0x80) != 0) ? 1 : 0;
+		    this.C = ((r &amp; 0x100) != 0) ? 0 : 1;
+		    this.A = r &amp; 0xFF;
 	    }
     }
 
     sbx() {
-	    this.tmp = this.read(this.addr) - (this.A & this.X);
+	    this.tmp = this.read(this.addr) - (this.A &amp; this.X);
 	    this.fnzb(this.tmp);
-	    this.X = (this.tmp & 0xFF);
+	    this.X = (this.tmp &amp; 0xFF);
     }
 
     sec() { this.C = 1; }
@@ -590,34 +618,34 @@ class CPU6502{
     sei() { this.I = 1; }
 
     shs() {
-	    this.tmp = ((this.addr >> 8) + 1) & this.A & this.X;
-	    this.write(this.addr, this.tmp & 0xFF);
-	    this.S = (this.tmp & 0xFF);
+	    this.tmp = ((this.addr >> 8) + 1) &amp; this.A &amp; this.X;
+	    this.write(this.addr, this.tmp &amp; 0xFF);
+	    this.S = (this.tmp &amp; 0xFF);
     }
 
     shx() {
-	    this.tmp = ((this.addr >> 8) + 1) & this.X;
-	    this.write(this.addr, this.tmp & 0xFF);
+	    this.tmp = ((this.addr >> 8) + 1) &amp; this.X;
+	    this.write(this.addr, this.tmp &amp; 0xFF);
     }
 
     shy() {
-	    this.tmp = ((this.addr >> 8) + 1) & this.Y;
-	    this.write(this.addr, this.tmp & 0xFF);
+	    this.tmp = ((this.addr >> 8) + 1) &amp; this.Y;
+	    this.write(this.addr, this.tmp &amp; 0xFF);
     }
 
     slo() {
-	    this.tmp = this.read(this.addr) << 1;
+	    this.tmp = this.read(this.addr) &lt;&lt; 1;
 	    this.tmp |= this.A;
 	    this.fnzc(this.tmp);
-	    this.A = this.tmp & 0xFF;
+	    this.A = this.tmp &amp; 0xFF;
     }
 
     sre() {
 	    var v = this.read(this.addr);
-	    this.tmp = ((v & 1) << 8) | (v >> 1);
+	    this.tmp = ((v &amp; 1) &lt;&lt; 8) | (v >> 1);
 	    this.tmp ^= this.A;
 	    this.fnzc(this.tmp);
-	    this.A = this.tmp & 0xFF;
+	    this.A = this.tmp &amp; 0xFF;
     }
 
     sta() {
@@ -668,3 +696,26 @@ class CPU6502{
 ////////////////////////////////////////////////////////////////////////////////
 
 export {CPU6502};
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CPU6502.html">CPU6502</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Sun May 06 2018 15:47:00 GMT+0200 (CEST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
