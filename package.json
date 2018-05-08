@@ -1,0 +1,33 @@
+{
+  "name": "6502",
+  "version": "0.0.1",
+  "description": "Cycle-accurate 6502 emulator in Javascript",
+  "main": "dist/6502.js",
+  "scripts": {
+    "start": "npm run build:release",
+    "build:production": "webpack --config webpack.prod.js --mode production",
+    "build:development": "webpack --config webpack.dev.js --mode development",
+    "build:docs": "jsdoc ./src/cpu.js -d docs",
+    "build:release": "npm run build:production && npm run build:development && npm run build:docs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Torlus/6502.js.git"
+  },
+  "author": "",
+  "license": "GPL-2.0-only",
+  "bugs": {
+    "url": "https://github.com/Torlus/6502.js/issues"
+  },
+  "homepage": "https://github.com/Torlus/6502.js#readme",
+  "devDependencies": {
+    "babel-core": "^6.26.3",
+    "babel-loader": "^7.1.4",
+    "babel-preset-env": "^1.6.1",
+    "jsdoc": "^3.5.5",
+    "uglifyjs-webpack-plugin": "^1.2.5",
+    "webpack": "^4.7.0",
+    "webpack-cli": "^2.1.2",
+    "webpack-merge": "^4.1.2"
+  }
+}

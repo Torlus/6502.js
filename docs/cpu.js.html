@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: cpu.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: cpu.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import CPU6502op from './opcodes.js'
+
+/**
+ * A 6502 processor emulator
+ */
+class CPU6502{
+    constructor(){
+        this.PC = 0; // Program counter
+
+	    this.A = 0; this.X = 0; this.Y = 0; this.S = 0; // Registers
+	    this.N = 0; this.Z = 1; this.C = 0; this.V = 0; // ALU flags
+	    this.I = 0; this.D = 0; // Other flags
+
+	    this.irq = 0; this.nmi = 0; // IRQ lines
+
+	    this.tmp = 0; this.addr = 0; // Temporary registers
+	    this.opcode = 0; // Current opcode
+	    this.cycles = 0; // Cycles counter
+    }
+    
+    ////////////////////////////////////////////////////////////////////////////////
+    // CPU control
+    ////////////////////////////////////////////////////////////////////////////////
+    
+    /**
+     * Reset the processor
+     */
+    reset() {
+
+	    this.A = 0; this.X = 0; this.Y = 0; this.S = 0;
+	    this.N = 0; this.Z = 1; this.C = 0; this.V = 0;
+	    this.I = 0; this.D = 0;
+
+	    this.PC = (this.read(0xFFFD) &lt;&lt; 8) | this.read(0xFFFC);
+    }
+    
+    /**
+     * Execute a single opcode
+     */
+    step() {
+	    this.opcode = this.read( this.PC++ );
+	    CPU6502op[ this.opcode ]( this );
+    }
+    
+    /**
+     * Log the current cycle count and all registers to console.log
+     */
+    log(){
+	    var msg = "nPC=" + this.PC.toString(16);
+	    msg += " cyc=" + this.cycles;
+	    msg += " [" + this.opcode.toString(16) + "] ";
+	    msg += ( this.C ? "C" : "-");
+	    msg += ( this.N ? "N" : "-");
+	    msg += ( this.Z ? "Z" : "-");
+	    msg += ( this.V ? "V" : "-");
+	    msg += ( this.D ? "D" : "-");
+	    msg += ( this.I ? "I" : "-");
+	    msg += " A=" + this.A.toString(16);
+	    msg += " X=" + this.X.toString(16);
+	    msg += " Y=" + this.Y.toString(16);
+	    msg += " S=" + this.S.toString(16);
+	    console.log(msg);
+    }
+    
+    /**
+     * Read a memory location. This function must be overridden with a custom implementation.
+     * @param {number} addr - The address to read from.
+     */
+     read(addr){
+        throw new Error('The read method must be overridden');
+     }
+     
+     /**
+     * Writa a value to a memory location. This function must be overridden with a custom implementation.
+     * @param {number} addr - The address to write to.
+     * @param {number} value - The value to write.
+     */
+     write(addr, value){
+        throw new Error('The read method must be overridden');
+     }
+    
+    ////////////////////////////////////////////////////////////////////////////////
+    // Subroutines - addressing modes &amp; flags
+    ////////////////////////////////////////////////////////////////////////////////
+
+    izx() {
+	    var a = (this.read(this.PC++) + this.X) &amp; 0xFF;
+	    this.addr = (this.read(a+1) &lt;&lt; 8) | this.read(a);
+	    this.cycles += 6;
+    }
+
+    izy() {
+	    var a = this.read(this.PC++);
+	    var paddr = (this.read((a+1) &amp; 0xFF) &lt;&lt; 8) | this.read(a);
+	    this.addr = (paddr + this.Y);
+	    if ( (paddr &amp; 0x100) != (this.addr &amp; 0x100) ) {
+		    this.cycles += 6;
+	    } else {
+		    this.cycles += 5;
+	    }
+    }
+
+    ind() {
+	    var a = this.read(this.PC);
+	    a |= this.read( (this.PC &amp; 0xFF00) | ((this.PC + 1) &amp; 0xFF) ) &lt;&lt; 8;
+	    this.addr = this.read(a);
+	    this.addr |= (this.read(a+1) &lt;&lt; 8);
+	    this.cycles += 5;
+    }
+
+    zp() {
+	    this.addr = this.read(this.PC++);
+	    this.cycles += 3;
+    }
+
+    zpx() {
+	    this.addr = (this.read(this.PC++) + this.X) &amp; 0xFF;
+	    this.cycles += 4;
+    }
+
+    zpy() {
+	    this.addr = (this.read(this.PC++) + this.Y) &amp; 0xFF;
+	    this.cycles += 4;
+    }
+
+    imp() {
+	    this.cycles += 2;
+    }
+
+    imm() {
+	    this.addr = this.PC++;
+	    this.cycles += 2;
+    }
+
+    abs() {
+	    this.addr = this.read(this.PC++);
+	    this.addr |= (this.read(this.PC++) &lt;&lt; 8);
+	    this.cycles += 4;
+    }
+
+    abx() {
+	    var paddr = this.read(this.PC++);
+	    paddr |= (this.read(this.PC++) &lt;&lt; 8);
+	    this.addr = (paddr + this.X);
+	    if ( (paddr &amp; 0x100) != (this.addr &amp; 0x100) ) {
+		    this.cycles += 5;
+	    } else {
+		    this.cycles += 4;
+	    }
+    }
+
+    aby() {
+	    var paddr = this.read(this.PC++);
+	    paddr |= (this.read(this.PC++) &lt;&lt; 8);
+	    this.addr = (paddr + this.Y);
+	    if ( (paddr &amp; 0x100) != (this.addr &amp; 0x100) ) {
+		    this.cycles += 5;
+	    } else {
+		    this.cycles += 4;
+	    }
+    }
+
+    rel() {
+	    this.addr = this.read(this.PC++);
+	    if (this.addr &amp; 0x80) {
+		    this.addr -= 0x100;
+	    }
+	    this.addr += this.PC;
+	    this.cycles += 2;
+    }
+
+    rmw() {
+	    this.write(this.addr, this.tmp &amp; 0xFF);
+	    this.cycles += 2;
+    }
+
+    fnz(v) {
+	    this.Z = ((v &amp; 0xFF) == 0) ? 1 : 0;
+	    this.N = ((v &amp; 0x80) != 0) ? 1 : 0;
+    }
+
+    // Borrow
+    fnzb(v) {
+	    this.Z = ((v &amp; 0xFF) == 0) ? 1 : 0;
+	    this.N = ((v &amp; 0x80) != 0) ? 1 : 0;
+	    this.C = ((v &amp; 0x100) != 0) ? 0 : 1;
+    }
+
+    // Carry
+    fnzc(v) {
+	    this.Z = ((v &amp; 0xFF) == 0) ? 1 : 0;
+	    this.N = ((v &amp; 0x80) != 0) ? 1 : 0;
+	    this.C = ((v &amp; 0x100) != 0) ? 1 : 0;
+    }
+
+    branch(v) {
+	    if (v) {
+		    if ( (this.addr &amp; 0x100) != (this.PC &amp; 0x100) ) {
+			    this.cycles += 2;
+		    } else {
+			    this.cycles += 1;
+		    }
+		    this.PC = this.addr;
+	    }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // Subroutines - instructions
+    ////////////////////////////////////////////////////////////////////////////////
+    adc() {
+	    var v = this.read(this.addr);
+	    var c = this.C;
+	    var r = this.A + v + c;
+	    if (this.D) {
+		    var al = (this.A &amp; 0x0F) + (v &amp; 0x0F) + c;
+		    if (al > 9) al += 6;
+		    var ah = (this.A >> 4) + (v >> 4) + ((al > 15) ? 1 : 0);
+		    this.Z = ((r &amp; 0xFF) == 0) ? 1 : 0;
+		    this.N = ((ah &amp; 8) != 0) ? 1 : 0;
+		    this.V = ((~(this.A ^ v) &amp; (this.A ^ (ah &lt;&lt; 4)) &amp; 0x80) != 0) ? 1 : 0;
+		    if (ah > 9) ah += 6;
+		    this.C = (ah > 15) ? 1 : 0;
+		    this.A = ((ah &lt;&lt; 4) | (al &amp; 15)) &amp; 0xFF;
+	    } else {
+		    this.Z = ((r &amp; 0xFF) == 0) ? 1 : 0;
+		    this.N = ((r &amp; 0x80) != 0) ? 1 : 0;
+		    this.V = ((~(this.A ^ v) &amp; (this.A ^ r) &amp; 0x80) != 0) ? 1 : 0;
+		    this.C = ((r &amp; 0x100) != 0) ? 1 : 0;
+		    this.A = r &amp; 0xFF;
+	    }
+    }
+
+    ahx() {
+	    this.tmp = ((this.addr >> 8) + 1) &amp; this.A &amp; this.X;
+	    this.write(this.addr, this.tmp &amp; 0xFF);
+    }
+
+    alr() {
+	    this.tmp = this.read(this.addr) &amp; this.A;
+	    this.tmp = ((this.tmp &amp; 1) &lt;&lt; 8) | (this.tmp >> 1);
+	    this.fnzc(this.tmp);
+	    this.A = this.tmp &amp; 0xFF;
+    }
+
+    anc() {
+	    this.tmp = this.read(this.addr);
+	    this.tmp |= ((this.tmp &amp; 0x80) &amp; (this.A &amp; 0x80)) &lt;&lt; 1;
+	    this.fnzc(this.tmp);
+	    this.A = this.tmp &amp; 0xFF;
+    }
+
+    and() {
+	    this.A &amp;= this.read(this.addr);
+	    this.fnz(this.A);
+    }
+
+    ane() {
+	    this.tmp = this.read(this.addr) &amp; this.A &amp; (this.A | 0xEE);
+	    this.fnz(this.tmp);
+	    this.A = this.tmp &amp; 0xFF;
+    }
+
+    arr() {
+	    this.tmp = this.read(this.adfdr) &amp; this.A;
+	    this.C = ((this.tmp &amp; 0x80) != 0);
+	    this.V = ((((this.tmp >> 7) &amp; 1) ^ ((this.tmp >> 6) &amp; 1)) != 0);
+	    if (this.D) {
+		    var al = (this.tmp &amp; 0x0F) + (this.tmp &amp; 1);
+		    if (al > 5) al += 6;
+		    var ah = ((this.tmp >> 4) &amp; 0x0F) + ((this.tmp >> 4) &amp; 1);
+		    if (ah > 5) {
+			    al += 6;
+			    this.C = true;
+		    } else {
+			    this.C = false;
+		    }
+		    this.tmp = (ah &lt;&lt; 4) | al;
+	    }
+	    this.fnz(this.tmp);
+	    this.A = this.tmp &amp; 0xFF;
+    }
+
+    asl() {
+	    this.tmp = this.read(this.addr) &lt;&lt; 1;
+	    this.fnzc(this.tmp);
+	    this.tmp &amp;= 0xFF;
+    }
+    asla() {
+	    this.tmp = this.A &lt;&lt; 1;
+	    this.fnzc(this.tmp);
+	    this.A = this.tmp &amp; 0xFF;
+    }
+
+    bit() {
+	    this.tmp = this.read(this.addr);
+	    this.N = ((this.tmp &amp; 0x80) != 0) ? 1 : 0;
+	    this.V = ((this.tmp &amp; 0x40) != 0) ? 1 : 0;
+	    this.Z = ((this.tmp &amp; this.A) == 0) ? 1 : 0;
+    }
+
+    brk() {
+	    this.PC++;
+	    this.write(this.S + 0x100, this.PC >> 8);
+	    this.S = (this.S - 1) &amp; 0xFF;
+	    this.write(this.S + 0x100, this.PC &amp; 0xFF);
+	    this.S = (this.S - 1) &amp; 0xFF;
+	    var v = this.N &lt;&lt; 7;
+	    v |= this.V &lt;&lt; 6;
+	    v |= 3 &lt;&lt; 4;
+	    v |= this.D &lt;&lt; 3;
+	    v |= this.I &lt;&lt; 2;
+	    v |= this.Z &lt;&lt; 1;
+	    v |= this.C;
+	    this.write(this.S + 0x100, v);
+	    this.S = (this.S - 1) &amp; 0xFF;
+	    this.I = 1;
+	    this.D = 0;
+	    this.PC = (this.read(0xFFFF) &lt;&lt; 8) | this.read(0xFFFE);
+	    this.cycles += 5;
+    }
+
+    bcc() { this.branch( this.C == 0 ); }
+    bcs() { this.branch( this.C == 1 ); }
+    beq() { this.branch( this.Z == 1 ); }
+    bne() { this.branch( this.Z == 0 ); }
+    bmi() { this.branch( this.N == 1 ); }
+    bpl() { this.branch( this.N == 0 ); }
+    bvc() { this.branch( this.V == 0 ); }
+    bvs() { this.branch( this.V == 1 ); }
+
+
+    clc() { this.C = 0; }
+    cld() { this.D = 0; }
+    cli() { this.I = 0; }
+    clv() { this.V = 0; }
+
+    cmp() {
+	    this.fnzb( this.A - this.read(this.addr) );
+    }
+
+    cpx() {
+	    this.fnzb( this.X - this.read(this.addr) );
+    }
+
+    cpy() {
+	    this.fnzb( this.Y - this.read(this.addr) );
+    }
+
+    dcp() {
+	    this.tmp = (this.read(this.addr) - 1) &amp; 0xFF;
+	    this.tmp = this.A - this.tmp;
+	    this.fnz(this.tmp);
+    }
+
+    dec() {
+	    this.tmp = (this.read(this.addr) - 1) &amp; 0xFF;
+	    this.fnz(this.tmp);
+    }
+
+    dex() {
+	    this.X = (this.X - 1) &amp; 0xFF;
+	    this.fnz(this.X);
+    }
+
+    dey() {
+	    this.Y = (this.Y - 1) &amp; 0xFF;
+	    this.fnz(this.Y);
+    }
+
+    eor() {
+	    this.A ^= this.read(this.addr);
+	    this.fnz(this.A);
+    }
+
+    inc() {
+	    this.tmp = (this.read(this.addr) + 1) &amp; 0xFF;
+	    this.fnz(this.tmp);
+    }
+
+    inx() {
+	    this.X = (this.X + 1) &amp; 0xFF;
+	    this.fnz(this.X);
+    }
+
+    iny() {
+	    this.Y = (this.Y + 1) &amp; 0xFF;
+	    this.fnz(this.Y);
+    }
+
+    isc() {
+	    var v = (this.read(this.addr) + 1) &amp; 0xFF;
+	    var c = 1 - (this.C ? 1 : 0);
+	    var r = this.A - v - c;
+	    if (this.D) {
+		    var al = (this.A &amp; 0x0F) - (v &amp; 0x0F) - c;
+		    if (al > 0x80) al -= 6;
+		    var ah = (this.A >> 4) - (v >> 4) - ((al > 0x80) ? 1 : 0);
+		    this.Z = ((r &amp; 0xFF) == 0);
+		    this.N = ((r &amp; 0x80) != 0);
+		    this.V = (((this.A ^ v) &amp; (this.A ^ r) &amp; 0x80) != 0);
+		    this.C = ((this.r &amp; 0x100) != 0) ? 0 : 1;
+		    if (ah > 0x80) ah -= 6;
+		    this.A = ((ah &lt;&lt; 4) | (al &amp; 15)) &amp; 0xFF;
+	    } else {
+		    this.Z = ((r &amp; 0xFF) == 0);
+		    this.N = ((r &amp; 0x80) != 0);
+		    this.V = (((this.A ^ v) &amp; (this.A ^ r) &amp; 0x80) != 0);
+		    this.C = ((r &amp; 0x100) != 0) ? 0 : 1;
+		    this.A = r &amp; 0xFF;
+	    }
+    }
+
+    jmp() {
+	    this.PC = this.addr;
+	    this.cycles--;
+    }
+
+    jsr() {
+	    this.write(this.S + 0x100, (this.PC - 1) >> 8);
+	    this.S = (this.S - 1) &amp; 0xFF;
+	    this.write(this.S + 0x100, (this.PC - 1) &amp; 0xFF);
+	    this.S = (this.S - 1) &amp; 0xFF;
+	    this.PC = this.addr;
+	    this.cycles += 2;
+    }
+
+    las() {
+	    this.S = this.X = this.A = this.read(this.addr) &amp; this.S;
+	    this.fnz(this.A);
+    }
+
+    lax() {
+	    this.X = this.A = this.read(this.addr);
+	    this.fnz(this.A);
+    }
+
+    lda() {
+	    this.A = this.read(this.addr);
+	    this.fnz(this.A);
+    }
+
+    ldx() {
+	    this.X = this.read(this.addr);
+	    this.fnz(this.X);
+    }
+
+    ldy() {
+	    this.Y = this.read(this.addr);
+	    this.fnz(this.Y);
+    }
+
+    ora() {
+	    this.A |= this.read(this.addr);
+	    this.fnz(this.A);
+    }
+
+    rol() {
+	    this.tmp = (this.read(this.addr) &lt;&lt; 1) | this.C;
+	    this.fnzc(this.tmp);
+	    this.tmp &amp;= 0xFF;
+    }
+    rla() {
+	    this.tmp = (this.A &lt;&lt; 1) | this.C;
+	    this.fnzc(this.tmp);
+	    this.A = this.tmp &amp; 0xFF;
+    }
+
+    ror() {
+	    this.tmp = this.read(this.addr);
+	    this.tmp = ((this.tmp &amp; 1) &lt;&lt; 8) | (this.C &lt;&lt; 7) | (this.tmp >> 1);
+	    this.fnzc(this.tmp);
+	    this.tmp &amp;= 0xFF;
+    }
+    rra() {
+	    this.tmp = ((this.A &amp; 1) &lt;&lt; 8) | (this.C &lt;&lt; 7) | (this.A >> 1);
+	    this.fnzc(this.tmp);
+	    this.A = this.tmp &amp; 0xFF;
+    }
+
+
+    lsr() {
+	    this.tmp = this.read(this.addr);
+	    this.tmp = ((this.tmp &amp; 1) &lt;&lt; 8) | (this.tmp >> 1);
+	    this.fnzc(this.tmp);
+	    this.tmp &amp;= 0xFF;
+    }
+    lsra() {
+	    this.tmp = ((this.A &amp; 1) &lt;&lt; 8) | (this.A >> 1);
+	    this.fnzc(this.tmp);
+	    this.A = this.tmp &amp; 0xFF;
+    }
+
+
+    nop() { }
+
+    pha() {
+	    this.write(this.S + 0x100, this.A);
+	    this.S = (this.S - 1) &amp; 0xFF;
+	    this.cycles++;
+    }
+
+    php() {
+	    var v = this.N &lt;&lt; 7;
+	    v |= this.V &lt;&lt; 6;
+	    v |= 3 &lt;&lt; 4;
+	    v |= this.D &lt;&lt; 3;
+	    v |= this.I &lt;&lt; 2;
+	    v |= this.Z &lt;&lt; 1;
+	    v |= this.C;
+	    this.write(this.S + 0x100, v);
+	    this.S = (this.S - 1) &amp; 0xFF;
+	    this.cycles++;
+    }
+
+    pla() {
+	    this.S = (this.S + 1) &amp; 0xFF;
+	    this.A = this.read(this.S + 0x100);
+	    this.fnz(this.A);
+	    this.cycles += 2;
+    }
+
+    plp() {
+	    this.S = (this.S + 1) &amp; 0xFF;
+	    this.tmp = this.read(this.S + 0x100);
+	    this.N = ((this.tmp &amp; 0x80) != 0) ? 1 : 0;
+	    this.V = ((this.tmp &amp; 0x40) != 0) ? 1 : 0;
+	    this.D = ((this.tmp &amp; 0x08) != 0) ? 1 : 0;
+	    this.I = ((this.tmp &amp; 0x04) != 0) ? 1 : 0;
+	    this.Z = ((this.tmp &amp; 0x02) != 0) ? 1 : 0;
+	    this.C = ((this.tmp &amp; 0x01) != 0) ? 1 : 0;
+	    this.cycles += 2;
+    }
+
+    rti() {
+	    this.S = (this.S + 1) &amp; 0xFF;
+	    this.tmp = this.read(this.S + 0x100);
+	    this.N = ((this.tmp &amp; 0x80) != 0) ? 1 : 0;
+	    this.V = ((this.tmp &amp; 0x40) != 0) ? 1 : 0;
+	    this.D = ((this.tmp &amp; 0x08) != 0) ? 1 : 0;
+	    this.I = ((this.tmp &amp; 0x04) != 0) ? 1 : 0;
+	    this.Z = ((this.tmp &amp; 0x02) != 0) ? 1 : 0;
+	    this.C = ((this.tmp &amp; 0x01) != 0) ? 1 : 0;
+	    this.S = (this.S + 1) &amp; 0xFF;
+	    this.PC = this.read(this.S + 0x100);
+	    this.S = (this.S + 1) &amp; 0xFF;
+	    this.PC |= this.read(this.S + 0x100) &lt;&lt; 8;
+	    this.cycles += 4;
+    }
+
+    rts() {
+	    this.S = (this.S + 1) &amp; 0xFF;
+	    this.PC = this.read(this.S + 0x100);
+	    this.S = (this.S + 1) &amp; 0xFF;
+	    this.PC |= this.read(this.S + 0x100) &lt;&lt; 8;
+	    this.PC++;
+	    this.cycles += 4;
+    }
+
+    sbc() {
+	    var v = this.read(this.addr);
+	    var c = 1 - this.C;
+	    var r = this.A - v - c;
+	    if (this.D) {
+		    var al = (this.A &amp; 0x0F) - (v &amp; 0x0F) - c;
+		    if (al &lt; 0) al -= 6;
+		    var ah = (this.A >> 4) - (v >> 4) - ((al &lt; 0) ? 1 : 0);
+		    this.Z = ((r &amp; 0xFF) == 0) ? 1 : 0;
+		    this.N = ((r &amp; 0x80) != 0) ? 1 : 0;
+		    this.V = (((this.A ^ v) &amp; (this.A ^ r) &amp; 0x80) != 0) ? 1 : 0;
+		    this.C = ((r &amp; 0x100) != 0) ? 0 : 1;
+		    if (ah &lt; 0) ah -= 6;
+		    this.A = ((ah &lt;&lt; 4) | (al &amp; 15)) &amp; 0xFF;
+	    } else {
+		    this.Z = ((r &amp; 0xFF) == 0) ? 1 : 0;
+		    this.N = ((r &amp; 0x80) != 0) ? 1 : 0;
+		    this.V = (((this.A ^ v) &amp; (this.A ^ r) &amp; 0x80) != 0) ? 1 : 0;
+		    this.C = ((r &amp; 0x100) != 0) ? 0 : 1;
+		    this.A = r &amp; 0xFF;
+	    }
+    }
+
+    sbx() {
+	    this.tmp = this.read(this.addr) - (this.A &amp; this.X);
+	    this.fnzb(this.tmp);
+	    this.X = (this.tmp &amp; 0xFF);
+    }
+
+    sec() { this.C = 1; }
+    sed() { this.D = 1; }
+    sei() { this.I = 1; }
+
+    shs() {
+	    this.tmp = ((this.addr >> 8) + 1) &amp; this.A &amp; this.X;
+	    this.write(this.addr, this.tmp &amp; 0xFF);
+	    this.S = (this.tmp &amp; 0xFF);
+    }
+
+    shx() {
+	    this.tmp = ((this.addr >> 8) + 1) &amp; this.X;
+	    this.write(this.addr, this.tmp &amp; 0xFF);
+    }
+
+    shy() {
+	    this.tmp = ((this.addr >> 8) + 1) &amp; this.Y;
+	    this.write(this.addr, this.tmp &amp; 0xFF);
+    }
+
+    slo() {
+	    this.tmp = this.read(this.addr) &lt;&lt; 1;
+	    this.tmp |= this.A;
+	    this.fnzc(this.tmp);
+	    this.A = this.tmp &amp; 0xFF;
+    }
+
+    sre() {
+	    var v = this.read(this.addr);
+	    this.tmp = ((v &amp; 1) &lt;&lt; 8) | (v >> 1);
+	    this.tmp ^= this.A;
+	    this.fnzc(this.tmp);
+	    this.A = this.tmp &amp; 0xFF;
+    }
+
+    sta() {
+	    this.write(this.addr, this.A);
+    }
+
+    stx() {
+	    this.write(this.addr, this.X);
+    }
+
+    sty() {
+	    this.write(this.addr, this.Y);
+    }
+
+    tax() {
+	    this.X = this.A;
+	    this.fnz(this.X);
+    }
+
+    tay() {
+	    this.Y = this.A;
+	    this.fnz(this.Y);
+    }
+
+    tsx() {
+	    this.X = this.S;
+	    this.fnz(this.X);
+    }
+
+    txa() {
+	    this.A = this.X;
+	    this.fnz(this.A);
+    }
+
+    txs() {
+	    this.S = this.X;
+    }
+
+    tya() {
+	    this.A = this.Y;
+	    this.fnz(this.A);
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// CPU instantiation
+////////////////////////////////////////////////////////////////////////////////
+
+export {CPU6502};
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CPU6502.html">CPU6502</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Sun May 06 2018 15:47:00 GMT+0200 (CEST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

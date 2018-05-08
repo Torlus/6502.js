@@ -1,0 +1,40 @@
+<html>
+    <head>
+        <script src="../dist/6502.min.js"></script>
+    </head>
+    <body>
+    
+        <script>
+            document.body.innerHTML="running speed test..."
+            var mem = new Uint8Array(0xFFFF);
+            var cpu = new CPU6502.CPU6502();
+
+            cpu.read = function(addr) {
+	            return mem[addr & 0xFFFF];
+            }
+            cpu.write = function(addr, value) {
+	            mem[addr & 0xFFFF] = value;
+            }
+            
+            cpu.reset();
+            
+            setTimeout(function(){
+                var start = Date.now();
+                cpu.cycles = 0;
+
+                while(cpu.cycles < 100000000) {
+	                cpu.step();
+                }
+                
+                var timeSpent=Date.now() - start;
+                var cyclesPerMs=1/(timeSpent/cpu.cycles);
+                var cyclesPerS=Math.round(cyclesPerMs*1000);
+                var mhz=Math.round(cyclesPerMs/1000, 2)
+                document.body.innerHTML="ran <b>"+cpu.cycles+"</b> cycles<br>"
+                document.body.innerHTML+="took <b>"+timeSpent+"</b> miliseconds<br>"
+                document.body.innerHTML+="<b>"+cyclesPerS+"</b> cycles per second or <b>"+mhz+"</b>Mhz<br>"
+            },10);
+            
+        </script>
+    </body>
+</html>
