@@ -6,7 +6,7 @@
     
         <script>
             document.body.innerHTML="running speed test..."
-            var mem = new Uint8Array(0xFFFF);
+            var mem = new Uint8Array(0x10000);
             var cpu = new CPU6502.CPU6502();
 
             cpu.read = function(addr) {
