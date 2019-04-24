@@ -101,11 +101,11 @@ class CPU6502{
     }
 
     ind() {
-	    var a = this.read(this.PC);
-	    a |= this.read( (this.PC & 0xFF00) | ((this.PC + 1) & 0xFF) ) << 8;
+	    var a = this.read(this.PC++);
+	    a |= (this.read(this.PC++) << 8);
 	    this.addr = this.read(a);
-	    this.addr |= (this.read(a+1) << 8);
-	    this.cycles += 5;
+	    this.addr |= (this.read( (a & 0xFF00) | ((a + 1) & 0xFF) ) << 8);
+	    this.cycles += 6;
     }
 
     zp() {
