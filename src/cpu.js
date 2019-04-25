@@ -17,11 +17,11 @@ class CPU6502{
 	    this.opcode = 0; // Current opcode
 	    this.cycles = 0; // Cycles counter
     }
-    
+
     ////////////////////////////////////////////////////////////////////////////////
     // CPU control
     ////////////////////////////////////////////////////////////////////////////////
-    
+
     /**
      * Reset the processor
      */
@@ -33,7 +33,7 @@ class CPU6502{
 
 	    this.PC = (this.read(0xFFFD) << 8) | this.read(0xFFFC);
     }
-    
+
     /**
      * Execute a single opcode
      */
@@ -41,7 +41,7 @@ class CPU6502{
 	    this.opcode = this.read( this.PC++ );
 	    CPU6502op[ this.opcode ]( this );
     }
-    
+
     /**
      * Log the current cycle count and all registers to console.log
      */
@@ -61,7 +61,7 @@ class CPU6502{
 	    msg += " S=" + this.S.toString(16);
 	    console.log(msg);
     }
-    
+
     /**
      * Read a memory location. This function must be overridden with a custom implementation.
      * @param {number} addr - The address to read from.
@@ -69,7 +69,7 @@ class CPU6502{
      read(addr){
         throw new Error('The read method must be overridden');
      }
-     
+
      /**
      * Writa a value to a memory location. This function must be overridden with a custom implementation.
      * @param {number} addr - The address to write to.
@@ -78,7 +78,7 @@ class CPU6502{
      write(addr, value){
         throw new Error('The read method must be overridden');
      }
-    
+
     ////////////////////////////////////////////////////////////////////////////////
     // Subroutines - addressing modes & flags
     ////////////////////////////////////////////////////////////////////////////////
@@ -99,6 +99,14 @@ class CPU6502{
 		    this.cycles += 5;
 	    }
     }
+
+    izyp() {
+	    var a = this.read(this.PC++);
+	    var paddr = (this.read((a+1) & 0xFF) << 8) | this.read(a);
+	    this.addr = (paddr + this.Y);
+		  this.cycles += 6;
+    }
+
 
     ind() {
 	    var a = this.read(this.PC++);
@@ -149,6 +157,13 @@ class CPU6502{
 	    }
     }
 
+    abxp() {
+	    var paddr = this.read(this.PC++);
+	    paddr |= (this.read(this.PC++) << 8);
+	    this.addr = (paddr + this.X);
+		  this.cycles += 5;
+    }
+
     aby() {
 	    var paddr = this.read(this.PC++);
 	    paddr |= (this.read(this.PC++) << 8);
@@ -159,6 +174,14 @@ class CPU6502{
 		    this.cycles += 4;
 	    }
     }
+
+    abyp() {
+	    var paddr = this.read(this.PC++);
+	    paddr |= (this.read(this.PC++) << 8);
+	    this.addr = (paddr + this.Y);
+      this.cycles += 5;
+    }
+
 
     rel() {
 	    this.addr = this.read(this.PC++);
